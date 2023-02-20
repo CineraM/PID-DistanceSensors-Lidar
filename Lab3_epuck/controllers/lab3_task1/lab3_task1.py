@@ -3,6 +3,7 @@
 from controller import Robot
 # import numpy as it may be used in future labs
 import numpy as np
+import math
 
 #######################################################
 # Creates Robot
@@ -84,6 +85,91 @@ rightposition_sensor.enable(timestep)
 #######################################################
 imu = robot.getDevice('inertial unit')
 imu.enable(timestep)
+
+
+
+# global variables
+distBtwWhe = 2.28
+dmid = distBtwWhe/2
+w_dia = 1.6
+w_r = w_dia/2
+pi = math.pi
+
+################## - GETTERS & HELPER - ######################
+def getPositionSensors():
+    return leftposition_sensor.getValue(), rightposition_sensor.getValue()
+
+def imu_cleaner(imu_reading):
+    rad_out = imu_reading
+    if rad_out < 0:
+        rad_out = rad_out + 2*math.pi
+    return math.degrees(rad_out)
+
+def imu_rad():
+    return math.radians(imu_cleaner(imu.getRollPitchYaw()[2]))
+
+# Transform inches to rad - max wheel speed is 5.024 in/
+def inToRad(v):
+    return v/w_r
+
+
+def straightMotionD(d):
+    v = 6.28        # use max speed
+    time = d/5.024  # 5.024 = v*r ==> max linear speed
+    s_time = robot.getTime()
+    while robot.step(timestep) != -1:
+        if robot.getTime()-s_time > time:
+            leftMotor.setVelocity(0)
+            rightMotor.setVelocity(0)
+            break 
+        leftMotor.setVelocity(v)
+        rightMotor.setVelocity(v)
+
+# angle must be provided in radians
+def rotationInPlace(direction, angle):
+    # quarter of a circle = 2pi/4  == pi/2
+    # for this self rotation ICC R = d_mid
+    s = angle*dmid
+    in_v = 0.8
+    time = s/in_v
+
+    v = inToRad(in_v) # input must be less than 6.28
+
+    s_time = robot.getTime()
+    while robot.step(timestep) != -1:
+        if robot.getTime()-s_time > time:
+            leftMotor.setVelocity(0)
+            rightMotor.setVelocity(0)
+            break 
+        if direction == "left":
+            leftMotor.setVelocity(-v)
+            rightMotor.setVelocity(v)
+        else:
+            leftMotor.setVelocity(v)
+            rightMotor.setVelocity(-v)
+def circularMotion(direction, R):
+    vr = 2
+    omega = vr/(R+dmid)
+    vl = omega*(R-dmid)
+    v = (vr+vl)/2
+    s = (pi/2) * R
+    time = s/v
+ 
+    vl_rad = inToRad(vl)
+    vr_rad = inToRad(vr) 
+
+    if direction == "right":
+        vl_rad = inToRad(vr)
+        vr_rad = inToRad(vl)
+
+    s_time = robot.getTime()
+    while robot.step(timestep) != -1:
+        if robot.getTime()-s_time > time:
+            leftMotor.setVelocity(0)
+            rightMotor.setVelocity(0)
+            break 
+        leftMotor.setVelocity(vl_rad)
+        rightMotor.setVelocity(vr_rad)
 
 # Main loop:
 # perform simulation steps until Webots is stopping the controller
