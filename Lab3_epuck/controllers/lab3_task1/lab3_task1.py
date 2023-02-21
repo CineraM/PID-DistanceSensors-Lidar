@@ -87,7 +87,6 @@ imu = robot.getDevice('inertial unit')
 imu.enable(timestep)
 
 
-
 # global variables
 distBtwWhe = 2.28
 dmid = distBtwWhe/2
@@ -147,6 +146,7 @@ def rotationInPlace(direction, angle):
         else:
             leftMotor.setVelocity(v)
             rightMotor.setVelocity(-v)
+
 def circularMotion(direction, R):
     vr = 2
     omega = vr/(R+dmid)
@@ -173,33 +173,73 @@ def circularMotion(direction, R):
 
 # Main loop:
 # perform simulation steps until Webots is stopping the controller
+def front_pid():
+    goal = 5 # in from the wall
+    k = 1
 
-while robot.step(timestep) != -1:
-    # Read the sensors:
-    # Getting full Range Image from Lidar returns a list of 1800 distances = 5 layers X 360 distances
-    full_range_image = lidar.getRangeImage()
-    # print size of Range Image
-    print('#################################################################')
-    print("Lidar's Full Range Image Size: ", len(full_range_image))
-    # Compare Distance Sensors to Lidar Ranges
+    # rear_dist = rearDistanceSensor.getValue()
+    # left_dist = leftDistanceSensor.getValue()
     front_dist = frontDistanceSensor.getValue()
-    right_dist = rightDistanceSensor.getValue()
-    rear_dist = rearDistanceSensor.getValue()
-    left_dist = leftDistanceSensor.getValue()
 
-    print("Distance Sensor vs Lidar")
-    print("\tFront:\t", front_dist, "\t|", full_range_image[0])
-    print("\tRight:\t", right_dist, "\t|", full_range_image[90])
-    print("\tRear:\t", rear_dist, "\t|", full_range_image[180])
-    print("\tLeft:\t", left_dist, "\t|", full_range_image[270])
+    d_inches = front_dist*39.3701
+    print(d_inches)
 
-    # Enter here functions to send actuator commands, like:
-    leftMotor.setVelocity(6)
-    rightMotor.setVelocity(6)
+    error = d_inches - goal 
 
-    if full_range_image[0] < .07:
+    tolerance = (goal*1.03) - (goal*0.97)
+    if tolerance > 0.3:
+        tolerance = 0.4
 
+    if abs(error) < tolerance:
         leftMotor.setVelocity(0)
         rightMotor.setVelocity(0)
-        break
+        return
+ 
+    # max speed is 5.024 inches --> 2pi * 0.8 (w radius)
+    v = k*error
+    motor_v = v/w_r
+    print(f'error: {error:.5f}, v: {v:.5f}, tolerance: {tolerance:.5f}')
+
+    if abs(motor_v) > 6.28:
+        leftMotor.setVelocity(6.28)
+        rightMotor.setVelocity(6.28)
+    else:
+        if v < 0.3:
+            v = 0.3
+        leftMotor.setVelocity(motor_v)
+        rightMotor.setVelocity(motor_v)
+
+
+# print("\tRight:\t", right_dist, "\t|", full_range_image[90])
+# print("\tRear:\t", rear_dist, "\t|", full_range_image[180])
+kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
+while robot.step(timestep) != -1:
+    front_pid()
+    # Read the sensors:
+    # # Getting full Range Image from Lidar returns a list of 1800 distances = 5 layers X 360 distances
+    # full_range_image = lidar.getRangeImage()
+    # # print size of Range Image
+    # print('#################################################################')
+    # print("Lidar's Full Range Image Size: ", len(full_range_image))
+    # # Compare Distance Sensors to Lidar Ranges
+    # front_dist = frontDistanceSensor.getValue()
+    # right_dist = rightDistanceSensor.getValue()
+    # rear_dist = rearDistanceSensor.getValue()
+    # left_dist = leftDistanceSensor.getValue()
+
+    # print("Distance Sensor vs Lidar")
+    # print("\tFront:\t", front_dist, "\t|", full_range_image[0])
+    # print("\tRight:\t", right_dist, "\t|", full_range_image[90])
+    # print("\tRear:\t", rear_dist, "\t|", full_range_image[180])
+    # print("\tLeft:\t", left_dist, "\t|", full_range_image[270])
+
+    # # Enter here functions to send actuator commands, like:
+    # leftMotor.setVelocity(6)
+    # rightMotor.setVelocity(6)
+
+    # if full_range_image[0] < .07:
+
+    #     leftMotor.setVelocity(0)
+    #     rightMotor.setVelocity(0)
+    #     break
 # Enter here exit cleanup code.
