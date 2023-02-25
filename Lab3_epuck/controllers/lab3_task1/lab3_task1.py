@@ -167,28 +167,22 @@ def circularMotion(direction, R):
         if robot.getTime()-s_time > time:
             leftMotor.setVelocity(0)
             rightMotor.setVelocity(0)
-            break 
+            break
         leftMotor.setVelocity(vl_rad)
         rightMotor.setVelocity(vr_rad)
 
 # Main loop:
 # perform simulation steps until Webots is stopping the controller
-def front_pid():
-    goal = 5 # in from the wall
-    k = 1
+def front_pid(goal, k):
 
-    # rear_dist = rearDistanceSensor.getValue()
-    # left_dist = leftDistanceSensor.getValue()
     front_dist = frontDistanceSensor.getValue()
-
     d_inches = front_dist*39.3701
     print(d_inches)
-
     error = d_inches - goal 
 
-    tolerance = (goal*1.03) - (goal*0.97)
-    if tolerance > 0.3:
-        tolerance = 0.4
+    tolerance = (goal*1.01) - (goal*0.99)
+    if tolerance < 0.1:
+        tolerance = 0.1
 
     if abs(error) < tolerance:
         leftMotor.setVelocity(0)
@@ -214,7 +208,7 @@ def front_pid():
 # print("\tRear:\t", rear_dist, "\t|", full_range_image[180])
 kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
 while robot.step(timestep) != -1:
-    front_pid()
+    front_pid(5, 1)
     # Read the sensors:
     # # Getting full Range Image from Lidar returns a list of 1800 distances = 5 layers X 360 distances
     # full_range_image = lidar.getRangeImage()
