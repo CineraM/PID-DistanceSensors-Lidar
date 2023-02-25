@@ -9,13 +9,10 @@ import math
 # Creates Robot
 #######################################################
 robot = Robot()
-
-
 #######################################################
 # Sets the time step of the current world
 #######################################################
 timestep = int(robot.getBasicTimeStep())
-
 #######################################################
 # Gets Robots Distance Sensors
 # Documentation:
@@ -42,7 +39,6 @@ lidar_num_layers = lidar.getNumberOfLayers()
 lidar_min_dist = lidar.getMinRange()
 lidar_max_dist = lidar.getMaxRange()
 
-
 print("Lidar is enabled. \nLidar has a Horizontal Resolution of: ", lidar_horizontal_res, "\nLidar Image Number of Layers: ", lidar_num_layers)
 print("Lidar Range: [",lidar_min_dist," ,", lidar_max_dist,'] in meters')
 
@@ -66,8 +62,6 @@ leftMotor.setPosition(float('inf'))
 rightMotor.setPosition(float('inf'))
 leftMotor.setVelocity(0)
 rightMotor.setVelocity(0)
-
-
 #######################################################
 # Gets Robot's the position sensors
 # Documentation:
@@ -93,75 +87,93 @@ w_dia = 1.6
 w_r = w_dia/2
 pi = math.pi
 
-def setSpeedIPS(vl, vr):
-    vlr = vl/w_r
-    if vlr > 6.28: vlr = 6.28
-    if vlr < -6.28: vlr = -6.28
-
-    vrr = vr/w_r
-    if vrr > 6.28: vrr = 6.28
-    if vrr < -6.28: vrr = -6.28
-
-    leftMotor.setVelocity(vlr)
-    rightMotor.setVelocity(vrr)
-
+# get left & right pid
 def getDistanceSensor():
     toIn = 39.3701
-    return [leftDistanceSensor.getValue()*toIn, rightDistanceSensor.getValue()*toIn, frontDistanceSensor.getValue()*toIn]
+    return [leftDistanceSensor.getValue()*toIn, rightDistanceSensor.getValue()*toIn]
 
-def wallFollow(wall, targetDistance, kp):
-    v=4
-    # true for left
-    if wall:
-        error = getDistanceSensor()[0] - targetDistance # target distance
-        print(error)
-        if error < 0:
-            setSpeedIPS(v-abs(error)*kp, v) # turn away from right wall
+# set speed to motors
+def setSpeedIPS(vl, vr):
+    vl /= w_r
+    vr /= w_r
+
+    leftMotor.setVelocity(vl)
+    rightMotor.setVelocity(vr)
+
+# saturation fnc
+def v_saturation(v, max):
+    if v > max:
+        return max
+    if v < -max:
+        return -max
+    return v
+
+# return the distance in inches from the front pid
+def front_pid():
+    return frontDistanceSensor.getValue()*39.3701
+
+# assume angle is in radians
+def rotationInPlace(direction, angle, in_v):
+    s = angle*dmid
+    time = s/in_v
+    v = in_v/w_r # input must be less than 6.28
+    s_time = robot.getTime()
+    while robot.step(timestep) != -1:
+        if robot.getTime()-s_time > time:
+            leftMotor.setVelocity(0)
+            rightMotor.setVelocity(0)
+            break 
+        if direction == "left":
+            leftMotor.setVelocity(-v)
+            rightMotor.setVelocity(v)
         else:
-            setSpeedIPS(v, v-abs(error)*kp) # turwn towards right wall
-    else:
-        error = getDistanceSensor()[1] - targetDistance # target distance
-        print(error)
-        if error < 0:
-            setSpeedIPS(v, v-abs(error)*kp) # turn away from left wall
+            leftMotor.setVelocity(v)
+            rightMotor.setVelocity(-v)
+
+def wallFollow(wall, fpid, k):
+    pids = getDistanceSensor()
+    left_pid = pids[0]
+    right_pid = pids[1]
+    
+    dist_to_wall = 3
+    v = v_saturation(fpid, 4)
+    error = (v - 2.5)  # target distance to wall = 2.5 inches
+    # error = (v - 2.5)*0.8  # target distance to wall = 2.5 inches
+
+    if wall == 'right':    
+        if fpid > 3:
+            
+            if right_pid < dist_to_wall:    # too close to target wall
+                setSpeedIPS(v-abs(error)*k, v)
+            elif right_pid > dist_to_wall:  # too far to target wall
+                setSpeedIPS(v, v-abs(error)*k)
+            elif left_pid < dist_to_wall:   # too close to opposite wall
+                setSpeedIPS(v, v-abs(error)*k)
         else:
-            setSpeedIPS(v-abs(error)*kp, v) # turwn towards left wall
+            setSpeedIPS(fpid, fpid)
+    elif wall == 'left':
+        if fpid > 3:
 
-
+            if left_pid < dist_to_wall:    # too close to target wall
+                setSpeedIPS(v, v-abs(error)*k)
+            elif left_pid > dist_to_wall:  # too far to target wall
+                setSpeedIPS(v-abs(error)*k, v)
+            elif right_pid < dist_to_wall: # too close to opposite wall
+                setSpeedIPS(v-abs(error)*k, v)
+        else:
+            setSpeedIPS(fpid, fpid)
 
 # Main loop:
 # perform simulation steps until Webots is stopping the controller
 while robot.step(timestep) != -1:
-    d = getDistanceSensor()
-    if d[1]>d[0]:
-        wallFollow(False, 2.5, .1)
-    else:
-        wallFollow(True, 2.5, .1)
-    # # Read the sensors:
-    # # Getting full Range Image from Lidar returns a list of 1800 distances = 5 layers X 360 distances
-    # full_range_image = lidar.getRangeImage()
-    # # print size of Range Image
-    # print('#################################################################')
-    # print("Lidar's Full Range Image Size: ", len(full_range_image))
-    # # Compare Distance Sensors to Lidar Ranges
-    # front_dist = frontDistanceSensor.getValue()
-    # right_dist = rightDistanceSensor.getValue()
-    # rear_dist = rearDistanceSensor.getValue()
-    # left_dist = leftDistanceSensor.getValue()
+    kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
+    fpid = front_pid()
+    wall = 'left'
 
-    # print("Distance Sensor vs Lidar")
-    # print("\tFront:\t", front_dist, "\t|", full_range_image[0])
-    # print("\tRight:\t", right_dist, "\t|", full_range_image[90])
-    # print("\tRear:\t", rear_dist, "\t|", full_range_image[180])
-    # print("\tLeft:\t", left_dist, "\t|", full_range_image[270])
-
-    # # Enter here functions to send actuator commands, like:
-    # leftMotor.setVelocity(6)
-    # rightMotor.setVelocity(6)
-
-    # if full_range_image[0] < .07:
-
-    #     leftMotor.setVelocity(0)
-    #     rightMotor.setVelocity(0)
-    #     break
-# Enter here exit cleanup code.
+    if fpid < 2.5:  # to close to wall
+        if wall == 'left':
+            rotationInPlace('right', pi/4, 0.9)
+        elif wall == 'right':
+            rotationInPlace('left', pi/4, 0.9)
+    else:   # else follow wall
+        wallFollow(wall, fpid, kps_vals[2])
