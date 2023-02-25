@@ -1,3 +1,10 @@
+"""
+Matias Cinera - U 6931_8506
+CAP-6626
+Instructor: Dr.Alfredo Weitzenfeld 
+Ta:         Chance Hamilton
+Assigment:  lab3_task1 controller.
+"""
 # You may need to import some classes of the controller module. Ex:
 #  from controller import Robot, Motor, DistanceSensor
 from controller import Robot

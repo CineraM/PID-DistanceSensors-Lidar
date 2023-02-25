@@ -4,10 +4,9 @@ max or min nfc()
 
 if more than 4
     return 4
-
-
+^^^^^
 saturation function
-front straig pid v():
+front pid v():
 
 
 wallfollow():
