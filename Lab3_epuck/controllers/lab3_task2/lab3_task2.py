@@ -103,7 +103,6 @@ def getDistanceSensor():
 def setSpeedIPS(vl, vr):
     vl /= w_r
     vr /= w_r
-
     leftMotor.setVelocity(vl)
     rightMotor.setVelocity(vr)
 
@@ -119,6 +118,10 @@ def v_saturation(v, max):
 def front_pid():
     return frontDistanceSensor.getValue()*39.3701
 
+def printPIDs():
+    pids = getDistanceSensor()
+    print(f'Front: {front_pid():.2f}, Left: {pids[0]:.2f}, Right: {pids[1]:.2f}')
+
 # assume angle is in radians
 def rotationInPlace(direction, angle, in_v):
     s = angle*dmid
@@ -126,6 +129,7 @@ def rotationInPlace(direction, angle, in_v):
     v = in_v/w_r # input must be less than 6.28
     s_time = robot.getTime()
     while robot.step(timestep) != -1:
+        printPIDs()
         if robot.getTime()-s_time > time:
             leftMotor.setVelocity(0)
             rightMotor.setVelocity(0)
@@ -146,7 +150,6 @@ def wallFollow(wall, fpid, k):
     v = v_saturation(fpid, 4)
     error = (v - 2.5)  # target distance to wall = 2.5 inches
     # error = (v - 2.5)*0.8  # target distance to wall = 2.5 inches
-
     if wall == 'right':    
         if fpid > 3:
             
@@ -172,12 +175,12 @@ def wallFollow(wall, fpid, k):
 
 # Main loop:
 # perform simulation steps until Webots is stopping the controller
+kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
 while robot.step(timestep) != -1:
-    kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
+    printPIDs()
     fpid = front_pid()
     wall = 'left'
-
-    if fpid < 2.5:  # to close to wall
+    if fpid < 2.5:  # to close to wall, rotate 45 deg away from it
         if wall == 'left':
             rotationInPlace('right', pi/4, 0.9)
         elif wall == 'right':
