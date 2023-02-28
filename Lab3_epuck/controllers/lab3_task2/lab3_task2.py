@@ -123,7 +123,7 @@ def v_saturation(v, max):
     return v
 
 # return the distance in inches from the front pid
-def front_pid():
+def front_dist():
     return frontDistanceSensor.getValue()*39.3701
 
 def front_lidar():
@@ -133,7 +133,7 @@ def front_lidar():
 def printSensors():
     pids = getDistanceSensor()
     lids = getLidar()
-    print(f'Distance:\t\tFront: {front_pid():.2f}\tLeft: {pids[0]:.2f}\tRight: {pids[1]:.2f}\n')
+    print(f'Distance:\t\tFront: {front_dist():.2f}\tLeft: {pids[0]:.2f}\tRight: {pids[1]:.2f}\n')
     print(f'Lidar:\t\tFront: {front_lidar():.2f}\tLeft: {lids[0]:.2f}\tRight: {lids[1]:.2f}\n')
 # assume angle is in radians
 def rotationInPlace(direction, angle, in_v):
@@ -220,7 +220,7 @@ def wallFollowLidar(wall, flid, k):
 kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
 while robot.step(timestep) != -1:
     printSensors()
-    fpid = front_pid()
+    fpid = front_dist()
     wall = 'left'
     if fpid < 2.5:  # to close to wall, rotate 45 deg away from it
         if wall == 'left':

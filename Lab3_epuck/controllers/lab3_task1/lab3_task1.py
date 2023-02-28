@@ -144,7 +144,6 @@ def front_lidar(goal, k):
 
 kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
 
-
 while robot.step(timestep) != -1:
     # front_pid(5, kps_vals[3])
     front_lidar(5, kps_vals[3])
