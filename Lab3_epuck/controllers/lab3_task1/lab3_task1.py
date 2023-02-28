@@ -128,6 +128,23 @@ def front_pid(goal, k):
     print(f'error: {error:.5f}, v: {v:.5f}')
     setSpeedIPS(v, v)
 
+def front_lidar(goal, k):
+
+    image = lidar.getRangeImage()
+    front_dist = image[0]*39.3701
+    error = front_dist - goal 
+    if abs(error) < 0.1:    # stop motors if 0.1in awa from goal
+        leftMotor.setVelocity(0)
+        rightMotor.setVelocity(0)
+        return
+    v = (k*error)
+    v = v_saturation(v, 5.024)
+    print(f'error: {error:.5f}, v: {v:.5f}')
+    setSpeedIPS(v, v)
+
 kps_vals = [0.1, 0.5, 1.0, 2.0, 2.5, 5.0]
+
+
 while robot.step(timestep) != -1:
-    front_pid(5, kps_vals[3])
+    # front_pid(5, kps_vals[3])
+    front_lidar(5, kps_vals[3])
