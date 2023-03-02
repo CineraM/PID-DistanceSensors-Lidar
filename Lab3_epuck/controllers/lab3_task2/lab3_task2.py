@@ -185,11 +185,31 @@ def wallFollow(wall, fpid, k):
         else:
             setSpeedIPS(fpid, fpid)
 
+
+def getLidarMin():
+    image = lidar.getRangeImage()
+    toIn = 39.3701
+
+    min_left = 999
+    min_right = 999
+
+    for i in range(270, 360):
+        if min_left > image[i]:
+            min_left = image[i]
+    
+    for i in range(0, 91):
+        if min_right > image[i]:
+            min_right = image[i]
+
+    return [min_left*toIn - half_of_robot, min_right*toIn - half_of_robot]
+
+
 def wallFollowLidar(wall, flid, k):
-    lids = getLidar()
+    lids = getLidarMin()
+
     left_lid = lids[0]
     right_lid = lids[1]
-    dist_to_wall = 3
+    dist_to_wall = 2.5
     v = v_saturation(flid, 4)
     error = (v - 2.5)  # target distance to wall = 2.5 inches
     # error = (v - 2.5)*0.8  # target distance to wall = 2.5 inches
